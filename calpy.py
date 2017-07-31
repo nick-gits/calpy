@@ -24,10 +24,8 @@
 import math
 RADIAN_MODE  = 0
 DEGREE_MODE  = 1
-DEFAULT_MODE = RADIAN_MODE
-
-_DEBUG = False # Set to True to show debugging messages
-_mode  = DEFAULT_MODE
+DEBUG = False        # Set to True to show debugging messages
+_mode  = RADIAN_MODE # Set mode to radian by default
 
 
 operators = {
@@ -44,18 +42,18 @@ operators = {
 functions = {
     # Function symbol: (n of args, Function)
     'sqrt' : (1, lambda a:     math.sqrt(a)),
-    'sin'  : (1, lambda a:           sin(a)),
-    'cos'  : (1, lambda a:           cos(a)),
-    'tan'  : (1, lambda a:           tan(a)),
-    'asin' : (1, lambda a:          asin(a)),
-    'acos' : (1, lambda a:          acos(a)),
-    'atan' : (1, lambda a:          atan(a)),
-    'sinh' : (1, lambda a:          sinh(a)),
-    'cosh' : (1, lambda a:          cosh(a)),
-    'tanh' : (1, lambda a:          tanh(a)),
-    'asinh': (1, lambda a:         asinh(a)),
-    'acosh': (1, lambda a:         acosh(a)),
-    'atanh': (1, lambda a:         atanh(a)),
+    'sin'  : (1, lambda a:          _sin(a)),
+    'cos'  : (1, lambda a:          _cos(a)),
+    'tan'  : (1, lambda a:          _tan(a)),
+    'asin' : (1, lambda a:         _asin(a)),
+    'acos' : (1, lambda a:         _acos(a)),
+    'atan' : (1, lambda a:         _atan(a)),
+    'sinh' : (1, lambda a:         _sinh(a)),
+    'cosh' : (1, lambda a:         _cosh(a)),
+    'tanh' : (1, lambda a:         _tanh(a)),
+    'asinh': (1, lambda a:        _asinh(a)),
+    'acosh': (1, lambda a:        _acosh(a)),
+    'atanh': (1, lambda a:        _atanh(a)),
     'log'  : (1, lambda a:    math.log10(a)),
     'ln'   : (1, lambda a:      math.log(a)),
     'pow'  : (2, lambda a, b:        a ** b),
@@ -86,15 +84,18 @@ class CalcOverflowError(Exception):
 
 def solve(raw_exp):
     """
-    Return the solution of the provided raw expression.
+    Return the solution of the provided raw math expression.
 
     argument(s):
-        raw_exp -- string representation of a math expression
+        raw_exp -- string representation of a raw math expression
 
     return value(s):
         solution -- float equal to the evaluated string expression, can also
                     raise CalcSyntaxError and CalcOverflowError
     """
+    if DEBUG:
+        print("Debug Info:\nInputted String Expression:\n" + raw_exp)
+
     raw_exp = raw_exp.lower()
     tokenized_exp = _tokenize_expression(raw_exp)
 
@@ -145,9 +146,6 @@ def solve(raw_exp):
     # Stops round() from returning -0 under certain circumstances.
     if solution == -0:
         solution += 0
-
-    if _DEBUG:
-        print("Solution: ", solution)
 
     specials["ans"] = solution
     return solution
@@ -210,22 +208,44 @@ def _tokenize_expression(raw_exp):
     if len(alpha_buffer) > 0:
         tokenized_exp.append(alpha_buffer)
 
+    if DEBUG:
+        print('Tokenized Infix:\n' + str(tokenized_exp))
+
     # Insert implied multiplication operators
     for i in range(len(tokenized_exp) - 1):
-        if ((tokenized_exp[i] not in operators and tokenized_exp[i+1] not in operators) and
-            not (tokenized_exp[i] in functions and tokenized_exp[i+1] == '(') and
-            tokenized_exp[i+1] != ')' and
-            tokenized_exp[i] != '('):
+        if ((tokenized_exp[i] not in operators and
+             tokenized_exp[i+1] not in operators) and not
+            (tokenized_exp[i] in functions and tokenized_exp[i+1] == '(') and
+             tokenized_exp[i+1] != ')' and tokenized_exp[i] != '('):
             tokenized_exp.insert(i+1, '*')
 
-    # Handle negative signs
-    for i in range(len(tokenized_exp) -1):
-        if tokenized_exp[i] == '-' and (tokenized_exp[i-1] in operators or
-                                        i == 0):
-            tokenized_exp.insert(i, '0')
+    if DEBUG:
+        print('Tokenized Infix After Handling Implied Multiplication:\n'
+              + str(tokenized_exp))
 
-    if _DEBUG:
-        print('Infix: ', tokenized_exp)
+    # Handle negative signs
+    i = 0
+    while i < len(tokenized_exp) - 1:
+        if tokenized_exp[i] == '-' and ((tokenized_exp[i-1] in operators or
+                                        i == 0) or tokenized_exp[i-1] == '('):
+            if _is_number(tokenized_exp[i+1]) or tokenized_exp[i+1] in specials:
+                tokenized_exp.insert(i, '0')
+                tokenized_exp.insert(i, '(')
+                tokenized_exp.insert(i+4, ')')
+            elif tokenized_exp[i+1] in functions or tokenized_exp[i+1] == '(':
+                tokenized_exp.insert(i, 0)
+                tokenized_exp.insert(i, '(')
+                k = i
+                while k < len(tokenized_exp):
+                    if tokenized_exp[k] == ')':
+                        tokenized_exp.insert(k, ')')
+                        break
+                    k += 1
+        i += 1
+
+    if DEBUG:
+        print('Tokenized Infix After Handling Negatives:\n'
+              + str(tokenized_exp))
 
     return tokenized_exp
 
@@ -277,8 +297,8 @@ def _to_postfix(infix_exp):
             raise CalcSyntaxError("Syntax Error: Mismatched parenthesis")
         postfix_exp.append(op_stack.pop())
 
-    if _DEBUG:
-        print('Postfix: ', postfix_exp)
+    if DEBUG:
+        print('Tokenized Postfix:\n' + str(postfix_exp))
 
     return postfix_exp
 
@@ -308,24 +328,24 @@ def _is_valid_token(token):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # The functions below are math functions, only for internal use. Do not call  #
 # these functions from an external file. If you added your own function to    #
-# the functions dictionary, define the actual function below (Unless it is    $
-# simple enough to place in a lambda on its own).                             $
+# the functions dictionary, define the actual function below (Unless it is    #
+# simple enough to place in a lambda on its own).                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-def sin(x):
+def _sin(x):
     return math.sin(x) if _mode == RADIAN_MODE else math.sin(math.radians(x))
 
 
-def cos(x):
+def _cos(x):
     return math.cos(x) if _mode == RADIAN_MODE else math.cos(math.radians(x))
 
 
-def tan(x):
+def _tan(x):
     return math.tan(x) if _mode == RADIAN_MODE else math.tan(math.radians(x))
 
 
-def asin(x):
+def _asin(x):
     try:
         if _mode == RADIAN_MODE:
             return math.asin(x)
@@ -335,7 +355,7 @@ def asin(x):
         raise CalcSyntaxError("Domain Error")
 
 
-def acos(x):
+def _acos(x):
     try:
         if _mode == RADIAN_MODE:
             return math.acos(x)
@@ -345,27 +365,27 @@ def acos(x):
         raise CalcSyntaxError("Domain Error")
 
 
-def atan(x):
+def _atan(x):
     return math.atan(x) if _mode == RADIAN_MODE else math.atan(math.radians(x))
 
 
-def sinh(x):
+def _sinh(x):
     return math.sinh(x) if _mode == RADIAN_MODE else math.sinh(math.radians(x))
 
 
-def cosh(x):
+def _cosh(x):
     return math.cosh(x) if _mode == RADIAN_MODE else math.cosh(math.radians(x))
 
 
-def tanh(x):
+def _tanh(x):
     return math.tanh(x) if _mode == RADIAN_MODE else math.tanh(math.radians(x))
 
 
-def asinh(x):
+def _asinh(x):
     return math.asinh(x) if _mode==RADIAN_MODE else math.asinh(math.radians(x))
 
 
-def acosh(x):
+def _acosh(x):
     try:
         if _mode == RADIAN_MODE:
             return math.acosh(x)
@@ -375,7 +395,7 @@ def acosh(x):
         raise CalcSyntaxError("Domain Error")
 
 
-def atanh(x):
+def _atanh(x):
     try:
         if _mode == RADIAN_MODE:
             return math.atanh(x)
