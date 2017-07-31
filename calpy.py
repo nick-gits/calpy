@@ -24,7 +24,7 @@
 import math
 RADIAN_MODE  = 0
 DEGREE_MODE  = 1
-DEBUG =  True        # Set to True to show debugging messages
+DEBUG =  False       # Set to True to show debugging messages
 _mode  = RADIAN_MODE # Set mode to radian by default
 
 
