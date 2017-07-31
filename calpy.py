@@ -24,7 +24,7 @@
 import math
 RADIAN_MODE  = 0
 DEGREE_MODE  = 1
-DEBUG = False        # Set to True to show debugging messages
+DEBUG =  True        # Set to True to show debugging messages
 _mode  = RADIAN_MODE # Set mode to radian by default
 
 
@@ -223,7 +223,43 @@ def _tokenize_expression(raw_exp):
         print('Tokenized Infix After Handling Implied Multiplication:\n'
               + str(tokenized_exp))
 
-    # Handle negative signs
+    # Handle negative signs, start with negative numbers raised to a power
+    i = 0
+    while i < len(tokenized_exp) - 1:
+        if tokenized_exp[i] == '^':
+            if tokenized_exp[i - 1] == ')': # Left parenthesis
+                k, n_parens = i - 2, 0
+                while k >= 0:
+                    if tokenized_exp[k] == '(':
+                        if n_parens == 0:
+                            tokenized_exp.insert(k, '(')
+                            i += 1
+                            break
+                        else:
+                            n_parens -= 1
+                    elif tokenized_exp[k] == ')':
+                        n_parens += 1
+                    k -= 1
+            else:
+                tokenized_exp.insert(i - 1, '(')
+                i += 1
+            if tokenized_exp[i + 1] == '(': # Right parenthesis
+                k, n_parens = i + 2, 0
+                while k < len(tokenized_exp):
+                    if tokenized_exp[k] == ')':
+                        if n_parens == 0:
+                            tokenized_exp.insert(k, ')')
+                            break
+                        else:
+                            n_parens -= 1
+                    elif tokenized_exp[k] == '(':
+                        n_parens += 1
+                    k += 1
+            else:
+                tokenized_exp.insert(i + 2, ')')
+            k, n_parens = i + 1, 0
+        i += 1
+    # Handle rest of negative signs
     i = 0
     while i < len(tokenized_exp) - 1:
         if tokenized_exp[i] == '-' and ((tokenized_exp[i-1] in operators or
