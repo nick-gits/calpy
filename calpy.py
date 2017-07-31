@@ -256,7 +256,10 @@ def _tokenize_expression(raw_exp):
                         n_parens += 1
                     k += 1
             else:
-                tokenized_exp.insert(i + 2, ')')
+                if tokenized_exp[i + 1] == '-':
+                    tokenized_exp.insert(i + 3, ')')
+                else:
+                    tokenized_exp.insert(i + 2, ')')
             k, n_parens = i + 1, 0
         i += 1
     # Handle rest of negative signs
