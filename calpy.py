@@ -1,5 +1,5 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Copyright (c) 2016 nick-gits                                                #
+# Copyright (c) 2017 nick-gits                                                #
 #                                                                             #
 # Permission is hereby granted, free of charge, to any person obtaining a copy#
 # of this software and associated documentation files (the "Software"), to    #
@@ -243,8 +243,11 @@ def _tokenize_expression(raw_exp):
             else:
                 tokenized_exp.insert(i - 1, '(')
                 i += 1
-            if tokenized_exp[i + 1] == '(': # Right parenthesis
+            if tokenized_exp[i + 1] == '(' or (tokenized_exp[i + 1] == '-' and
+                                              tokenized_exp[i + 2] == '('):
                 k, n_parens = i + 2, 0
+                if tokenized_exp[i + 1] == '-':
+                    k = i + 3
                 while k < len(tokenized_exp):
                     if tokenized_exp[k] == ')':
                         if n_parens == 0:
